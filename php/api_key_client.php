@@ -10,7 +10,7 @@ function decode($data) {
     return base64_decode(str_replace(['-', '_'], ['+', '/'], $data));
 }
 
-function genAuthHeaders($clientId, $userId, $apiKeyName, $apiKey, $method, $path) {
+function genAuthHeaders($clientId, $apiClientKey, $dealerId, $userId, $apiKeyName, $apiKey, $method, $path) {
 	// get the current date in yyyyMMdd format
 	$date = date('Ymd');
 	// current UTC timestamp in millisec
@@ -18,7 +18,12 @@ function genAuthHeaders($clientId, $userId, $apiKeyName, $apiKey, $method, $path
 	$ts = '1536353464539';
 
 	$authHeader = "TCIv1-HmacSHA256 Credential=";
-	$creds = array( $date, "external", $clientId, $userId, $apiKeyName );
+	$creds = array( $date, "external", $clientId, $dealerId, $userId, $apiKeyName );
+	
+	if( !isset( $dealerId ) || empty($dealerId)) { 
+		$creds = array( $date, "external", $clientId, $userId, $apiKeyName );
+	}
+	
 	$signingKey = $apiKey;
 	
 	// derive request signing key from the api key + creds
@@ -37,6 +42,7 @@ function genAuthHeaders($clientId, $userId, $apiKeyName, $apiKey, $method, $path
 	$authHeader = $authHeader . bin2hex($signature);
 
 	$headers = array (
+		"x-api-key" => $apiClientKey,
 		"Authorization" => $authHeader,
 		"x-tci-timestamp" => $ts
 	);
@@ -45,21 +51,23 @@ function genAuthHeaders($clientId, $userId, $apiKeyName, $apiKey, $method, $path
 } 
 
 $clientId = $argv[1];
-$userId = $argv[2];
-$apiKeyName = $argv[3];
-$apiKey = $argv[4];
-$appId = $argv[5];
+$apiClientKey = $argv[2];
+$dealerId = $argv[3];
+$userId = $argv[4];
+$apiKeyName = $argv[5];
+$apiKey = $argv[6];
+$appId = $argv[7];
 
 $method = "GET";
 $path = "/applications/" . $appId;
 
-echo($clientId . " " . $userId . " " . $apiKeyName . " " . $apiKey . " " . $method . " " . $path . "\n");
+echo($clientId . " " . $apiClientKey . " " . $dealerId . " " . $userId . " " . $apiKeyName . " " . $apiKey . " " . $method . " " . $path . "\n");
 
-$headers = genAuthHeaders($clientId, $userId, $apiKeyName, $apiKey, $method, $path);
+$headers = genAuthHeaders($clientId, $apiClientKey, $dealerId, $userId, $apiKeyName, $apiKey, $method, $path);
 
 var_dump($headers);
 
-$url = "https://demo.decisionlender.solutions/tci/headless-api" . $path;
+$url = "https://api-demo.decisionlender.solutions" . $path;
 $response = \Httpful\Request::get($url)
 	->addHeaders($headers)
 	->send();

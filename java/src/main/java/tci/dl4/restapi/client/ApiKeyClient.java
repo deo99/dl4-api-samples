@@ -28,14 +28,18 @@ public class ApiKeyClient {
 	private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
 	private String basePath = null;
 	private String apiClientId = null;
+	private String apiClientKey = null;
+	private String apiDealerId = null;
 	private String apiUserName = null;
 	private String apiKeyName = null;
 	private SecretKeySpec initialKey;
 	
-	public ApiKeyClient(String basePath, String apiClientId, String apiUserName, String apiKeyName, String apiKeyValue)
+	public ApiKeyClient(String basePath, String apiClientId, String apiClientKey, String apiDealerId, String apiUserName, String apiKeyName, String apiKeyValue)
 			throws UnsupportedEncodingException {
 		this.basePath = basePath;
 		this.apiClientId = apiClientId;
+		this.apiClientKey = apiClientKey;
+		this.apiDealerId = apiDealerId;
 		this.apiUserName = apiUserName;
 		this.apiKeyName = apiKeyName;
 		this.initialKey = new SecretKeySpec(apiKeyValue.getBytes("UTF-8"), "HmacSHA256");
@@ -53,6 +57,9 @@ public class ApiKeyClient {
 	private SigningKey keyGen(Date timestamp) throws Exception {
 		String date = DATE_FORMATTER.format(timestamp);
 		List<String> credentials = Arrays.asList( date, "external", apiClientId, apiUserName, apiKeyName );
+		if (apiDealerId != null && !apiDealerId.isEmpty()) {
+			credentials = Arrays.asList( date, "external", apiClientId, apiDealerId, apiUserName, apiKeyName );
+		}
 		SigningKey signingKey = new SigningKey();
 		signingKey.key = initialKey;
 
@@ -100,10 +107,12 @@ public class ApiKeyClient {
 		authHeader += " SignedEntities=" + toSignKeys + ","; 
 		authHeader += " Signature=" + signature;
 
+		req.setHeader("x-api-key", apiClientKey);
 		req.setHeader("x-tci-timestamp", timestampStr);
 		req.setHeader("Authorization", authHeader);
 		
 		System.out.println("Auth headers:");
+		System.out.println("\tx-api-key -- " + apiClientKey);
 		System.out.println("\tAuthorization -- " + authHeader);
 		System.out.println("\tx-tci-timestamp -- " + timestampStr);
 	}

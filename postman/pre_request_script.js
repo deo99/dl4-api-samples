@@ -1,4 +1,4 @@
-function genAuthHeaders(clientId, userId, apiKeyName, apiKey, method, path, headers) {
+function genAuthHeaders(clientId, dealerId, userId, apiKeyName, apiKey, method, path, headers) {
 	var date = new Date();
 	var ts = date.getTime().toString();
 	
@@ -18,6 +18,10 @@ function genAuthHeaders(clientId, userId, apiKeyName, apiKey, method, path, head
 
 	var authHeader = "TCIv1-HmacSHA256 Credential=";
 	var creds = [ dateStr, "external", clientId, userId, apiKeyName ];
+	if (dealerId != undefined && dealerId != '') {
+		creds = [ dateStr, "external", clientId, dealerId, userId, apiKeyName ];
+	}
+	
 	var signingKey = apiKey;
 	for ( var i = 0; i < creds.length; i++ ) {
 		signingKey = new CryptoJS.HmacSHA256( creds[i], signingKey );
@@ -30,7 +34,7 @@ function genAuthHeaders(clientId, userId, apiKeyName, apiKey, method, path, head
 	var toSign = method + ";" + path + ";" + ts;
 	var signature = new CryptoJS.HmacSHA256( toSign, signingKey );
 	authHeader += CryptoJS.enc.Hex.stringify( signature );
-	
+
 	headers["Authorization"] = authHeader;
 	headers["x-tci-timestamp"] = ts;
 }
@@ -43,7 +47,7 @@ for ( i = 2; i != pm.request.url.path.length; i++ ) {
 }
 method = pm.request.method;
 console.log(method + " " + path);
-genAuthHeaders("<clientId>", "<userId>", "<keyName>", "<keyValue>", method, path, headers);
+genAuthHeaders("<clientId>", "<dealerId>", "<userId>", "<keyName>", "<keyValue>", method, path, headers);
 
 postman.setEnvironmentVariable("authHeader", headers['Authorization']);
 postman.setEnvironmentVariable("tsHeader", headers['x-tci-timestamp']);
